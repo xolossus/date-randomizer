@@ -870,6 +870,10 @@
     }
 
     function removeFromPool(index) {
+      const idea = state.pool[index];
+      if (!idea) return;
+      const ok = confirm('Permanently remove "' + idea.text + '" from your date list?');
+      if (!ok) return;
       state.pool.splice(index, 1);
       saveState();
       updateUI();
