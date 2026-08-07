@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Tokyo Date Ideas</title>
+  <meta name="theme-color" content="#c2185b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Maru+Gothic:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+    body {
+      font-family: 'Zen Maru Gothic', 'Noto Sans JP', sans-serif;
+      overflow-x: hidden;
+    }
+    .pixel-font { font-family: 'Noto Sans JP', sans-serif; letter-spacing: -0.02em; }
+    .bg-pixel {
+      background-image: url('bg.webp');
+      background-size: cover;
+      background-position: center;
+    }
+    .glass {
+      background: rgba(20, 10, 30, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 200, 220, 0.15);
+    }
+    .glass-light {
+      background: rgba(255, 245, 250, 0.92);
+      backdrop-filter: blur(8px);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #e91e63 0%, #c2185b 100%);
+      box-shadow: 0 4px 15px rgba(233, 30, 99, 0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .btn-primary:active { transform: scale(0.96); }
+    .sakura-petal {
+      position: fixed;
+      width: 10px; height: 10px;
+      background: radial-gradient(circle, #ffb7c5 0%, #ff9eb5 100%);
+      border-radius: 50% 0 50% 50%;
+      opacity: 0.7;
+      pointer-events: none;
+      animation: fall linear infinite;
+      z-index: 5;
+    }
+    @keyframes fall {
+      0% { transform: translateY(-10vh) rotate(0deg) translateX(0); opacity: 0.8; }
+      100% { transform: translateY(110vh) rotate(720deg) translateX(30px); opacity: 0; }
+    }
+    .card-reveal { animation: reveal 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    @keyframes reveal {
+      0% { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+    .shake { animation: shake 0.5s ease-in-out; }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-8px); }
+      75% { transform: translateX(8px); }
+    }
+    .slide-in { animation: slideIn 0.3s ease-out; }
+    @keyframes slideIn {
+      0% { transform: translateX(100%); opacity: 0; }
+      100% { transform: translateX(0); opacity: 1; }
+    }
+    .fade-in { animation: fadeIn 0.3s ease-out; }
+    @keyframes fadeIn {
+      0% { opacity: 0; transform: translateY(10px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    .heart-beat { animation: heartbeat 1.5s ease-in-out infinite; }
+    @keyframes heartbeat {
+      0%, 100% { transform: scale(1); }
+      14% { transform: scale(1.1); }
+      28% { transform: scale(1); }
+      42% { transform: scale(1.1); }
+    }
+    .pixel-border {
+      box-shadow: 
+        0 0 0 2px #c2185b,
+        0 0 0 4px #fff,
+        0 0 0 6px #c2185b;
+    }
+    .cherry-btn {
+      background: linear-gradient(135deg, #ff80ab 0%, #f50057 100%);
+      box-shadow: 0 4px 15px rgba(245, 0, 87, 0.3);
+    }
+    .shrine-btn {
+      background: linear-gradient(135deg, #7c4dff 0%, #651fff 100%);
+      box-shadow: 0 4px 15px rgba(124, 77, 255, 0.3);
+    }
+    .scroll-hide::-webkit-scrollbar { display: none; }
+    .scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .swipe-hint {
+      position: relative;
+    }
+    .swipe-hint::after {
+      content: '';
+      position: absolute;
+      bottom: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 40px;
+      height: 4px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 2px;
+    }
+    .counter-glow {
+      text-shadow: 0 0 10px rgba(255, 183, 197, 0.6);
+    }
+    #fileInput { display: none; }
+    .modal-enter { animation: modalEnter 0.25s ease-out; }
+    @keyframes modalEnter {
+      0% { transform: scale(0.9); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .btn-row {
+      min-height: 96px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-fixed {
+      min-height: 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-white h-screen w-screen overflow-hidden relative">
+
+  <!-- Sakura Petals Container -->
+  <div id="petals"></div>
+
+  <!-- Background -->
+  <div class="fixed inset-0 bg-pixel z-0"></div>
+  <div class="fixed inset-0 bg-gradient-to-b from-purple-900/40 via-pink-900/30 to-rose-900/50 z-0"></div>
+
+  <!-- MAIN VIEW -->
+  <div id="mainView" class="relative z-10 h-full flex flex-col">
+    
+    <!-- Top Bar -->
+    <div class="flex items-center justify-between px-4 pt-4 pb-2">
+      <div class="flex gap-2">
+        <button onclick="showArchives()" class="shrine-btn px-4 py-2 rounded-xl text-sm font-bold pixel-font tracking-wide active:scale-95 transition-transform">
+          🏛️ Archives
+        </button>
+        <button onclick="showList()" class="cherry-btn px-4 py-2 rounded-xl text-sm font-bold pixel-font tracking-wide active:scale-95 transition-transform">
+          📝 List
+        </button>
+      </div>
+      <div class="glass rounded-2xl px-4 py-2 flex items-center gap-2">
+        <span class="text-xl">💕</span>
+        <span id="completedCounter" class="text-2xl font-black text-pink-300 counter-glow pixel-font">0</span>
+      </div>
+    </div>
+
+    <!-- Center Content -->
+    <div class="flex-1 flex flex-col items-center justify-center px-6 gap-6">
+      
+      <!-- Title -->
+      <div class="text-center mb-2">
+        <h1 class="text-4xl font-black pixel-font text-white drop-shadow-lg" style="text-shadow: 0 2px 10px rgba(233,30,99,0.5);">
+          東京デート
+        </h1>
+        <p class="text-pink-200 text-sm mt-1 font-medium tracking-widest">TOKYO DATE IDEAS</p>
+      </div>
+
+      <!-- Date Card Display -->
+      <div id="dateCardContainer" class="w-full max-w-sm">
+        <div id="dateCard" class="glass rounded-3xl p-6 text-center min-h-[200px] flex flex-col items-center justify-center swipe-hint">
+          <div id="cardEmoji" class="text-5xl mb-2">🎌</div>
+          <p id="cardText" class="text-xl font-bold pixel-font leading-relaxed line-clamp-2">
+            Tap the button below<br>to draw a date idea!
+          </p>
+          <p id="cardCategory" class="text-pink-300 text-xs mt-3 font-medium uppercase tracking-wider h-4"></p>
+        </div>
+      </div>
+
+      <!-- Button Row: shared container for both states to prevent layout shift -->
+      <div class="w-full max-w-sm btn-row">
+        <!-- Action Buttons (hidden initially) -->
+        <div id="actionButtons" class="flex gap-3 w-full hidden">
+          <button onclick="skipDate()" class="flex-1 glass rounded-2xl py-4 text-center active:scale-95 transition-transform btn-fixed">
+            <div class="text-2xl mb-1">❌</div>
+            <div class="text-sm font-bold text-gray-300">Skip</div>
+          </button>
+          <button onclick="completeDate()" class="flex-1 btn-primary rounded-2xl py-4 text-center active:scale-95 transition-transform btn-fixed">
+            <div class="text-2xl mb-1 heart-beat">💕</div>
+            <div class="text-sm font-bold">Did It!</div>
+          </button>
+        </div>
+
+        <!-- Main Button -->
+        <button id="drawButton" onclick="drawDate()" class="btn-primary w-full rounded-2xl text-lg font-black pixel-font tracking-wider active:scale-95 transition-transform btn-fixed">
+          🎲 DRAW A DATE
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Bottom padding for safe area -->
+    <div class="h-6"></div>
+  </div>
+
+  <!-- ARCHIVES VIEW -->
+  <div id="archivesView" class="fixed inset-0 z-20 bg-gray-900 hidden flex-col">
+    <div class="bg-gradient-to-b from-purple-900 to-gray-900 px-4 pt-4 pb-3 flex items-center justify-between shrink-0">
+      <button onclick="showMain()" class="text-white text-2xl p-2">←</button>
+      <h2 class="text-xl font-black pixel-font">🏛️ Archives</h2>
+      <div class="w-10"></div>
+    </div>
+    <div id="archivesList" class="flex-1 overflow-y-auto scroll-hide p-4 space-y-3">
+      <!-- Filled by JS -->
+    </div>
+  </div>
+
+  <!-- LIST VIEW -->
+  <div id="listView" class="fixed inset-0 z-20 bg-gray-900 hidden flex-col">
+    <div class="bg-gradient-to-b from-pink-900 to-gray-900 px-4 pt-4 pb-3 flex items-center justify-between shrink-0">
+      <button onclick="showMain()" class="text-white text-2xl p-2">←</button>
+      <h2 class="text-xl font-black pixel-font">📝 Date Ideas Pool</h2>
+      <div class="w-10"></div>
+    </div>
+    <div class="px-4 py-3 glass-light rounded-2xl mx-4 mt-3 shrink-0">
+      <div class="flex gap-2">
+        <input id="newIdeaInput" type="text" placeholder="Add a new date idea..." 
+          class="flex-1 bg-white/80 rounded-xl px-4 py-3 text-gray-800 font-medium outline-none focus:ring-2 focus:ring-pink-400"
+          onkeypress="if(event.key==='Enter') addIdea()">
+        <button onclick="addIdea()" class="btn-primary px-5 rounded-xl font-bold text-lg">+</button>
+      </div>
+      <p class="text-gray-500 text-xs mt-2 text-center">💡 Pool has <span id="poolCount">0</span> ideas</p>
+    </div>
+    <div id="ideasList" class="flex-1 overflow-y-auto scroll-hide p-4 space-y-2">
+      <!-- Filled by JS -->
+    </div>
+  </div>
+
+  <!-- PHOTO ATTACH MODAL -->
+  <div id="photoModal" class="fixed inset-0 z-30 bg-black/80 hidden items-center justify-center p-4">
+    <div class="glass rounded-3xl p-6 w-full max-w-sm modal-enter">
+      <h3 class="text-xl font-black pixel-font text-center mb-4">📸 Add Photos</h3>
+      <p id="photoModalTitle" class="text-pink-200 text-center text-sm mb-4"></p>
+      <div id="photoPreviewGrid" class="photo-grid mb-4"></div>
+      <button onclick="document.getElementById('fileInput').click()" class="w-full py-3 rounded-xl border-2 border-dashed border-pink-300/50 text-pink-200 font-medium mb-3 active:bg-pink-900/30 transition-colors">
+        📁 Choose Photos
+      </button>
+      <input type="file" id="fileInput" multiple accept="image/*" onchange="handlePhotoSelect(event)">
+      <div class="flex gap-2">
+        <button onclick="closePhotoModal()" class="flex-1 py-3 rounded-xl glass text-gray-300 font-bold">Cancel</button>
+        <button onclick="savePhotos()" class="flex-1 py-3 rounded-xl btn-primary font-bold">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DATE DETAIL / ARCHIVE VIEW MODAL -->
+  <div id="detailModal" class="fixed inset-0 z-30 bg-black/90 hidden flex-col">
+    <div class="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
+      <button onclick="closeDetailModal()" class="text-white text-2xl p-2">←</button>
+      <button onclick="confirmDeleteArchive()" class="w-10 h-10 flex items-center justify-center text-red-400 text-2xl rounded-full bg-red-900/30 active:scale-95 transition-transform">✕</button>
+    </div>
+    <div id="detailContent" class="flex-1 overflow-y-auto scroll-hide p-4">
+      <!-- Filled by JS -->
+    </div>
+  </div>
+
+  <!-- COMPLETION CONFIRM -->
+  <div id="completionModal" class="fixed inset-0 z-30 bg-black/80 hidden items-center justify-center p-4">
+    <div class="glass rounded-3xl p-6 w-full max-w-sm modal-enter text-center">
+      <div class="text-6xl mb-3 heart-beat">💕</div>
+      <h3 class="text-2xl font-black pixel-font mb-2">Date Completed!</h3>
+      <p class="text-gray-300 text-sm mb-4">Want to add photos to remember it?</p>
+      <div class="flex gap-2">
+        <button onclick="skipPhotos()" class="flex-1 py-3 rounded-xl glass text-gray-300 font-bold">Skip</button>
+        <button onclick="openPhotoModalFromComplete()" class="flex-1 py-3 rounded-xl btn-primary font-bold">Add Photos</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DATA EXPORT/IMPORT (for sandboxed environments) -->
+  <div id="dataModal" class="fixed inset-0 z-30 bg-black/80 hidden items-center justify-center p-4">
+    <div class="glass rounded-3xl p-6 w-full max-w-sm modal-enter">
+      <h3 class="text-xl font-black pixel-font text-center mb-2">💾 Your Data</h3>
+      <p class="text-gray-300 text-xs text-center mb-4">Copy this text to keep your dates. Paste it back to restore!</p>
+      <textarea id="dataExportArea" readonly class="w-full h-32 bg-black/50 rounded-xl p-3 text-xs text-green-400 font-mono mb-3 outline-none resize-none"></textarea>
+      <textarea id="dataImportArea" placeholder="Paste saved data here to restore..." class="w-full h-20 bg-white/10 rounded-xl p-3 text-xs text-white placeholder-gray-500 mb-3 outline-none resize-none"></textarea>
+      <div class="flex gap-2">
+        <button onclick="copyData()" class="flex-1 py-3 rounded-xl glass text-green-300 font-bold text-sm">📋 Copy</button>
+        <button onclick="importData()" class="flex-1 py-3 rounded-xl btn-primary font-bold text-sm">📥 Restore</button>
+      </div>
+      <button onclick="closeDataModal()" class="w-full mt-2 py-2 rounded-xl glass text-gray-400 text-sm">Close</button>
+    </div>
+  </div>
+
+  <script>
+    // ===== DATA & STATE =====
+    const DEFAULT_IDEAS = [
+      { text: "Visit teamLab Planets digital art museum", emoji: "🌌", category: "Art" },
+      { text: "Late-night ramen at Ichiran in Shibuya", emoji: "🍜", category: "Food" },
+      { text: "Watch the sunset from Tokyo Skytree", emoji: "🌅", category: "View" },
+      { text: "Explore the retro gaming arcades in Akihabara", emoji: "🎮", category: "Fun" },
+      { text: "Picnic under sakura trees at Ueno Park", emoji: "🧺", category: "Nature" },
+      { text: "Couple's pottery class in Asakusa", emoji: "🏺", category: "Activity" },
+      { text: "Rooftop bar hopping in Shibuya", emoji: "🍸", category: "Night" },
+      { text: "Morning tsukiji outer market food tour", emoji: "🐟", category: "Food" },
+      { text: "Rent yukata and visit Senso-ji Temple", emoji: "⛩️", category: "Culture" },
+      { text: "Karaoke marathon in a private booth", emoji: "🎤", category: "Fun" },
+      { text: "Day trip to Enoshima Island beach", emoji: "🏖️", category: "Trip" },
+      { text: "Cooking class: make sushi together", emoji: "🍣", category: "Activity" },
+      { text: "Night cruise on Tokyo Bay", emoji: "⛴️", category: "Romance" },
+      { text: "Visit the Ghibli Museum in Mitaka", emoji: "🎬", category: "Art" },
+      { text: "Hike Mount Takao and enjoy hot springs after", emoji: "🥾", category: "Active" },
+      { text: "Jazz bar evening in Ginza", emoji: "🎷", category: "Night" },
+      { text: "Matcha sweets tour in Uji-inspired Tokyo cafes", emoji: "🍵", category: "Food" },
+      { text: "Go to the Aquarium", emoji: "🐠", category: "Cute" },
+      { text: "Go to Ueno Zoo and draw the animals that you see", emoji: "🐘", category: "Fun" },
+      { text: "Go to Katori (1 day trip)", emoji: "🗾", category: "Trip" },
+      { text: "Go to Karaoke and have drinks", emoji: "🍻", category: "Night" },
+      { text: "Do a movie marathon", emoji: "🍿", category: "Fun" },
+      { text: "Go shopping and pick outfits for each other", emoji: "👗", category: "Fun" },
+      { text: "Do an escape room together", emoji: "🧩", category: "Activity" },
+      { text: "Go on a cheesecake hunt", emoji: "🍰", category: "Food" },
+      { text: "No phone and walking around all day", emoji: "🚶", category: "Active" },
+      { text: "Photo booth revenge", emoji: "📸", category: "Fun" },
+      { text: "Writing letters for each other in our native languages", emoji: "💌", category: "Romance" },
+      { text: "Eat a pastel de nata", emoji: "🥧", category: "Food" }
+    ];
+
+    let state = {
+      pool: [],
+      archives: [],
+      completedCount: 0,
+      currentDraw: null,
+      tempPhotos: [],
+      editingArchiveId: null,
+      completingArchiveId: null
+    };
+    let currentDetailArchiveId = null;
+
+    // Storage abstraction (legacy localStorage fallback, used for migration only)
+    const storage = {
+      get(key) {
+        try { return localStorage.getItem(key); } catch(e) { return null; }
+      },
+      set(key, val) {
+        try { localStorage.setItem(key, val); } catch(e) {}
+      }
+    };
+
+    // ===== PERSISTENCE: IndexedDB (durable, big quota for photos) =====
+    const DB_NAME = 'tokyoDateDB';
+    const DB_VERSION = 1;
+    const DB_STORE = 'kv';
+    const DB_KEY = 'main';
+    let dbPromise = null;
+
+    function openDB() {
+      if (dbPromise) return dbPromise;
+      dbPromise = new Promise((resolve, reject) => {
+        if (!('indexedDB' in window)) return reject(new Error('IndexedDB unavailable'));
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = () => req.result.createObjectStore(DB_STORE);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+      return dbPromise;
+    }
+
+    async function dbGet() {
+      try {
+        const db = await openDB();
+        return await new Promise((resolve, reject) => {
+          const req = db.transaction(DB_STORE, 'readonly').objectStore(DB_STORE).get(DB_KEY);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => reject(req.error);
+        });
+      } catch(e) { return null; }
+    }
+
+    async function dbSet(value) {
+      try {
+        const db = await openDB();
+        return await new Promise((resolve, reject) => {
+          const tx = db.transaction(DB_STORE, 'readwrite');
+          tx.objectStore(DB_STORE).put(value, DB_KEY);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+      } catch(e) {}
+    }
+
+    // ===== INIT =====
+    function init() {
+      dbGet().then(saved => {
+        if (saved && saved.pool && saved.archives) {
+          state = saved;
+        } else {
+          loadLegacy();
+        }
+        finishInit();
+      }).catch(() => {
+        loadLegacy();
+        finishInit();
+      });
+    }
+
+    function loadLegacy() {
+      const saved = storage.get('tokyoDateState');
+      if (saved) {
+        try {
+          state = JSON.parse(saved);
+          return;
+        } catch(e) {}
+      }
+      resetData();
+    }
+
+    function finishInit() {
+      updateUI();
+      createPetals();
+      playReveal(document.getElementById('dateCard'));
+    }
+
+    function resetData() {
+      state.pool = shuffle([...DEFAULT_IDEAS.map((idea, i) => ({ ...idea, id: 'idea_' + i }))]);
+      state.archives = [];
+      state.completedCount = 0;
+      state.currentDraw = null;
+      saveState();
+    }
+
+    // Debounced write to IndexedDB
+    let saveTimer = null;
+    function saveState() {
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => dbSet(state), 250);
+    }
+
+    // ===== DATA PERSISTENCE FOR SANDBOXED ENV =====
+    function showDataModal() {
+      document.getElementById('dataExportArea').value = JSON.stringify(state);
+      document.getElementById('dataImportArea').value = '';
+      document.getElementById('dataModal').classList.remove('hidden');
+      document.getElementById('dataModal').classList.add('flex');
+    }
+
+    function closeDataModal() {
+      document.getElementById('dataModal').classList.add('hidden');
+      document.getElementById('dataModal').classList.remove('flex');
+    }
+
+    function copyData() {
+      const area = document.getElementById('dataExportArea');
+      area.select();
+      try {
+        navigator.clipboard.writeText(area.value);
+        const btn = event.target;
+        const old = btn.textContent;
+        btn.textContent = '✅ Copied!';
+        setTimeout(() => btn.textContent = old, 1500);
+      } catch(e) {}
+    }
+
+    function importData() {
+      const raw = document.getElementById('dataImportArea').value.trim();
+      if (!raw) return;
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed.pool && parsed.archives && typeof parsed.completedCount === 'number') {
+          state = parsed;
+          saveState();
+          updateUI();
+          closeDataModal();
+        } else {
+          alert('Invalid data format');
+        }
+      } catch(e) {
+        alert('Could not parse data');
+      }
+    }
+
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    // ===== UI UPDATES =====
+    function updateUI() {
+      document.getElementById('completedCounter').textContent = state.completedCount;
+      document.getElementById('poolCount').textContent = state.pool.length;
+      renderArchives();
+      renderList();
+    }
+
+    // ===== NAVIGATION =====
+    function showMain() {
+      hideAllViews();
+      document.getElementById('mainView').classList.remove('hidden');
+      document.getElementById('mainView').classList.add('flex');
+    }
+
+    function showArchives() {
+      hideAllViews();
+      document.getElementById('archivesView').classList.remove('hidden');
+      document.getElementById('archivesView').classList.add('flex');
+      renderArchives();
+    }
+
+    function showList() {
+      hideAllViews();
+      document.getElementById('listView').classList.remove('hidden');
+      document.getElementById('listView').classList.add('flex');
+      renderList();
+    }
+
+    function hideAllViews() {
+      ['mainView', 'archivesView', 'listView'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+        document.getElementById(id).classList.remove('flex');
+      });
+    }
+
+    // ===== DRAW DATE =====
+    function playReveal(cardEl) {
+      cardEl.classList.remove('card-reveal');
+      void cardEl.offsetWidth;
+      cardEl.classList.add('card-reveal');
+      // Remove it once the animation ends (0.5s) so it never re-triggers
+      // later — e.g. when skipDate removes the "shake" class.
+      setTimeout(() => cardEl.classList.remove('card-reveal'), 500);
+    }
+
+    function drawDate() {
+      if (state.pool.length === 0) {
+        showEmptyCard();
+        return;
+      }
+      const card = state.pool[0];
+      state.currentDraw = card;
+      state.pool = state.pool.slice(1);
+      saveState();
+      
+      document.getElementById('cardEmoji').textContent = card.emoji || '🎌';
+      document.getElementById('cardText').textContent = card.text;
+      document.getElementById('cardCategory').textContent = card.category || '';
+
+      playReveal(document.getElementById('dateCard'));
+
+      document.getElementById('drawButton').classList.add('hidden');
+      document.getElementById('actionButtons').classList.remove('hidden');
+      document.getElementById('actionButtons').classList.add('flex');
+    }
+
+    function resetCard() {
+      document.getElementById('cardEmoji').textContent = '🎌';
+      document.getElementById('cardText').innerHTML = 'Tap the button below<br>to draw a date idea!';
+      document.getElementById('cardCategory').textContent = '';
+      document.getElementById('drawButton').textContent = '🎲 DRAW A DATE';
+      document.getElementById('drawButton').onclick = drawDate;
+      document.getElementById('drawButton').classList.remove('hidden');
+      document.getElementById('actionButtons').classList.add('hidden');
+      document.getElementById('actionButtons').classList.remove('flex');
+    }
+
+    function showEmptyCard() {
+      document.getElementById('cardEmoji').textContent = '✨';
+      document.getElementById('cardText').innerHTML = 'Season 2 coming soon!';
+      document.getElementById('cardCategory').textContent = '';
+      document.getElementById('drawButton').classList.add('hidden');
+      document.getElementById('actionButtons').classList.add('hidden');
+      document.getElementById('actionButtons').classList.remove('flex');
+    }
+
+    // Bring back the DRAW A DATE button after ideas are added in the List view
+    function restoreDrawButton() {
+      const btn = document.getElementById('drawButton');
+      if (btn.classList.contains('hidden')) {
+        btn.textContent = '🎲 DRAW A DATE';
+        btn.onclick = drawDate;
+        btn.classList.remove('hidden');
+      }
+    }
+
+    function skipDate() {
+      if (state.currentDraw) {
+        state.pool = shuffle([...state.pool, state.currentDraw]);
+      }
+      state.currentDraw = null;
+      saveState();
+      
+      document.getElementById('actionButtons').classList.add('hidden');
+      document.getElementById('actionButtons').classList.remove('flex');
+      document.getElementById('drawButton').classList.remove('hidden');
+      
+      const card = document.getElementById('dateCard');
+      card.classList.add('shake');
+      setTimeout(() => card.classList.remove('shake'), 500);
+      
+      document.getElementById('cardEmoji').textContent = '🎲';
+      document.getElementById('cardText').textContent = 'Tap to draw again!';
+      document.getElementById('cardCategory').textContent = '';
+    }
+
+    function completeDate() {
+      if (!state.currentDraw) return;
+      
+      const archiveEntry = {
+        id: 'archive_' + Date.now(),
+        idea: state.currentDraw,
+        completedAt: new Date().toISOString(),
+        photos: []
+      };
+      
+      state.archives.unshift(archiveEntry);
+      state.completedCount++;
+      state.completingArchiveId = archiveEntry.id;
+      state.currentDraw = null;
+      saveState();
+      
+      document.getElementById('actionButtons').classList.add('hidden');
+      document.getElementById('actionButtons').classList.remove('flex');
+      document.getElementById('drawButton').classList.remove('hidden');
+      
+      document.getElementById('cardEmoji').textContent = '✨';
+      document.getElementById('cardText').textContent = 'Great job! Add photos?';
+      document.getElementById('cardCategory').textContent = '';
+      
+      document.getElementById('completionModal').classList.remove('hidden');
+      document.getElementById('completionModal').classList.add('flex');
+      updateUI();
+    }
+
+    // ===== PHOTOS =====
+    function openPhotoModalFromComplete() {
+      document.getElementById('completionModal').classList.add('hidden');
+      document.getElementById('completionModal').classList.remove('flex');
+      state.editingArchiveId = state.completingArchiveId;
+      state.tempPhotos = [];
+      document.getElementById('photoModalTitle').textContent = 'New completed date!';
+      document.getElementById('photoPreviewGrid').innerHTML = '';
+      document.getElementById('photoModal').classList.remove('hidden');
+      document.getElementById('photoModal').classList.add('flex');
+    }
+
+    function skipPhotos() {
+      document.getElementById('completionModal').classList.add('hidden');
+      document.getElementById('completionModal').classList.remove('flex');
+      state.completingArchiveId = null;
+      resetCard();
+      showMain();
+    }
+
+    function openPhotoModal(archiveId) {
+      state.editingArchiveId = archiveId;
+      state.tempPhotos = [];
+      const archive = state.archives.find(a => a.id === archiveId);
+      document.getElementById('photoModalTitle').textContent = archive ? archive.idea.text : '';
+      document.getElementById('photoPreviewGrid').innerHTML = '';
+      document.getElementById('photoModal').classList.remove('hidden');
+      document.getElementById('photoModal').classList.add('flex');
+    }
+
+    function closePhotoModal() {
+      document.getElementById('photoModal').classList.add('hidden');
+      document.getElementById('photoModal').classList.remove('flex');
+      state.tempPhotos = [];
+      state.editingArchiveId = null;
+      if (state.completingArchiveId) {
+        state.completingArchiveId = null;
+        resetCard();
+      }
+    }
+
+    function handlePhotoSelect(event) {
+      const files = Array.from(event.target.files);
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          state.tempPhotos.push(e.target.result);
+          renderPhotoPreview();
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function renderPhotoPreview() {
+      const grid = document.getElementById('photoPreviewGrid');
+      grid.innerHTML = state.tempPhotos.map((photo, i) => `
+        <div class="relative aspect-square rounded-xl overflow-hidden bg-gray-800">
+          <img src="${photo}" class="w-full h-full object-cover">
+          <button onclick="removeTempPhoto(${i})" class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 text-xs font-bold">×</button>
+        </div>
+      `).join('');
+    }
+
+    function removeTempPhoto(index) {
+      state.tempPhotos.splice(index, 1);
+      renderPhotoPreview();
+    }
+
+    function savePhotos() {
+      if (state.editingArchiveId) {
+        const archive = state.archives.find(a => a.id === state.editingArchiveId);
+        if (archive) {
+          archive.photos = [...archive.photos, ...state.tempPhotos];
+          saveState();
+        }
+      }
+      const wasCompleting = state.completingArchiveId;
+      closePhotoModal();
+      if (wasCompleting) {
+        resetCard();
+      }
+      renderArchives();
+      showMain();
+    }
+
+    // ===== ARCHIVES =====
+    function renderArchives() {
+      const container = document.getElementById('archivesList');
+      if (state.archives.length === 0) {
+        container.innerHTML = `
+          <div class="flex flex-col items-center justify-center h-64 text-center">
+            <div class="text-6xl mb-4 opacity-30">🏛️</div>
+            <p class="text-gray-400 font-medium">No completed dates yet</p>
+            <p class="text-gray-500 text-sm mt-1">Complete a date to see it here!</p>
+          </div>
+        `;
+        return;
+      }
+      
+      container.innerHTML = state.archives.map(archive => `
+        <div onclick="showArchiveDetail('${archive.id}')" class="glass rounded-2xl p-4 active:scale-[0.98] transition-transform cursor-pointer slide-in">
+          <div class="flex items-center gap-3">
+            <div class="text-3xl">${archive.idea.emoji || '🎌'}</div>
+            <div class="flex-1 min-w-0">
+              <p class="font-bold truncate">${archive.idea.text}</p>
+              <p class="text-xs text-pink-300 mt-1">${formatDate(archive.completedAt)}</p>
+            </div>
+            ${archive.photos.length > 0 ? `<div class="text-pink-400 text-lg">📸</div>` : ''}
+          </div>
+          ${archive.photos.length > 0 ? `
+            <div class="photo-grid mt-3">
+              ${archive.photos.slice(0, 3).map(p => `<img src="${p}" class="aspect-square rounded-lg object-cover">`).join('')}
+            </div>
+          ` : ''}
+        </div>
+      `).join('');
+    }
+
+    function showArchiveDetail(archiveId) {
+      const archive = state.archives.find(a => a.id === archiveId);
+      if (!archive) return;
+      currentDetailArchiveId = archiveId;
+      
+      document.getElementById('detailContent').innerHTML = `
+        <div class="fade-in">
+          <div class="glass rounded-3xl p-6 text-center mb-4">
+            <div class="text-6xl mb-3">${archive.idea.emoji || '🎌'}</div>
+            <h2 class="text-2xl font-black pixel-font mb-2">${archive.idea.text}</h2>
+            <p class="text-pink-300 text-sm">${archive.idea.category || ''} • ${formatDate(archive.completedAt)}</p>
+          </div>
+          
+          ${archive.photos.length > 0 ? `
+            <div class="glass rounded-2xl p-4 mb-4">
+              <h3 class="font-bold mb-3 text-pink-200">Photos (${archive.photos.length})</h3>
+              <div class="photo-grid">
+                ${archive.photos.map(p => `
+                  <div class="aspect-square rounded-xl overflow-hidden">
+                    <img src="${p}" class="w-full h-full object-cover" onclick="window.open('${p}')">
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+          
+          <button onclick="openPhotoModal('${archive.id}')" class="w-full py-4 rounded-2xl btn-primary font-bold text-lg mb-3">
+            📸 Add More Photos
+          </button>
+        </div>
+      `;
+      
+      document.getElementById('detailModal').classList.remove('hidden');
+      document.getElementById('detailModal').classList.add('flex');
+    }
+
+    function closeDetailModal() {
+      document.getElementById('detailModal').classList.add('hidden');
+      document.getElementById('detailModal').classList.remove('flex');
+      currentDetailArchiveId = null;
+    }
+
+    function confirmDeleteArchive() {
+      if (!currentDetailArchiveId) return;
+      const archive = state.archives.find(a => a.id === currentDetailArchiveId);
+      if (!archive) return;
+      const ok = confirm('Remove this date from your archives and add it back to the pool?');
+      if (!ok) return;
+      deleteArchive(currentDetailArchiveId);
+    }
+
+    function deleteArchive(archiveId) {
+      const idx = state.archives.findIndex(a => a.id === archiveId);
+      if (idx === -1) return;
+      const archive = state.archives[idx];
+      state.archives.splice(idx, 1);
+      state.completedCount = Math.max(0, state.completedCount - 1);
+      state.pool = shuffle([...state.pool, archive.idea]);
+      saveState();
+      currentDetailArchiveId = null;
+      closeDetailModal();
+      updateUI();
+      restoreDrawButton();
+    }
+
+    // ===== LIST / POOL =====
+    function renderList() {
+      const container = document.getElementById('ideasList');
+      if (state.pool.length === 0) {
+        container.innerHTML = `
+          <div class="flex flex-col items-center justify-center h-32 text-center">
+            <p class="text-gray-400 font-medium">Pool is empty!</p>
+            <p class="text-gray-500 text-sm mt-1">Add ideas or draw from defaults</p>
+          </div>
+        `;
+        return;
+      }
+      
+      container.innerHTML = state.pool.map((idea, idx) => `
+        <div class="glass rounded-xl p-3 flex items-center gap-3 slide-in">
+          <div class="text-2xl">${idea.emoji || '💡'}</div>
+          <div class="flex-1 min-w-0">
+            <p class="font-medium text-sm truncate">${idea.text}</p>
+            <p class="text-xs text-gray-400">${idea.category || 'Custom'}</p>
+          </div>
+          <button onclick="removeFromPool(${idx})" class="text-red-400 p-2 text-lg">🗑️</button>
+        </div>
+      `).join('');
+    }
+
+    function addIdea() {
+      const input = document.getElementById('newIdeaInput');
+      const text = input.value.trim();
+      if (!text) return;
+      
+      const newIdea = {
+        id: 'custom_' + Date.now(),
+        text: text,
+        emoji: '💡',
+        category: 'Custom'
+      };
+      
+      state.pool = shuffle([...state.pool, newIdea]);
+      input.value = '';
+      saveState();
+      updateUI();
+      restoreDrawButton();
+    }
+
+    function removeFromPool(index) {
+      state.pool.splice(index, 1);
+      saveState();
+      updateUI();
+    }
+
+    // ===== UTILS =====
+    function formatDate(iso) {
+      const d = new Date(iso);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function createPetals() {
+      const container = document.getElementById('petals');
+      for (let i = 0; i < 8; i++) {
+        const petal = document.createElement('div');
+        petal.className = 'sakura-petal';
+        petal.style.left = Math.random() * 100 + 'vw';
+        petal.style.animationDuration = (8 + Math.random() * 12) + 's';
+        petal.style.animationDelay = Math.random() * 10 + 's';
+        petal.style.width = (6 + Math.random() * 8) + 'px';
+        petal.style.height = petal.style.width;
+        container.appendChild(petal);
+      }
+    }
+
+    // ===== START =====
+    init();
+
+    // ===== SERVICE WORKER (offline / installable app) =====
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+</body>
+</html>
