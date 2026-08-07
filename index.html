@@ -285,6 +285,18 @@
     </div>
   </div>
 
+  <!-- CUSTOM CONFIRM MODAL -->
+  <div id="confirmModal" class="fixed inset-0 z-30 bg-black/80 hidden items-center justify-center p-4">
+    <div class="glass rounded-3xl p-6 w-full max-w-sm modal-enter text-center">
+      <div id="confirmEmoji" class="text-5xl mb-3">🗑️</div>
+      <p id="confirmText" class="text-white font-bold text-lg mb-5"></p>
+      <div class="flex gap-2">
+        <button onclick="confirmCancel()" class="flex-1 py-3 rounded-xl glass text-gray-300 font-bold">Cancel</button>
+        <button onclick="confirmOk()" class="flex-1 py-3 rounded-xl bg-red-600 font-bold text-white active:scale-95 transition-transform">Delete</button>
+      </div>
+    </div>
+  </div>
+
   <!-- DATA EXPORT/IMPORT (for sandboxed environments) -->
   <div id="dataModal" class="fixed inset-0 z-30 bg-black/80 hidden items-center justify-center p-4">
     <div class="glass rounded-3xl p-6 w-full max-w-sm modal-enter">
@@ -344,6 +356,29 @@
       completingArchiveId: null
     };
     let currentDetailArchiveId = null;
+    let confirmCallback = null;
+
+    // ===== CUSTOM CONFIRM MODAL =====
+    function showConfirm(message, onOk, emoji) {
+      document.getElementById('confirmText').textContent = message;
+      document.getElementById('confirmEmoji').textContent = emoji || '🗑️';
+      confirmCallback = onOk;
+      document.getElementById('confirmModal').classList.remove('hidden');
+      document.getElementById('confirmModal').classList.add('flex');
+    }
+
+    function confirmOk() {
+      document.getElementById('confirmModal').classList.add('hidden');
+      document.getElementById('confirmModal').classList.remove('flex');
+      if (confirmCallback) confirmCallback();
+      confirmCallback = null;
+    }
+
+    function confirmCancel() {
+      document.getElementById('confirmModal').classList.add('hidden');
+      document.getElementById('confirmModal').classList.remove('flex');
+      confirmCallback = null;
+    }
 
     // Storage abstraction (legacy localStorage fallback, used for migration only)
     const storage = {
@@ -806,9 +841,10 @@
       if (!currentDetailArchiveId) return;
       const archive = state.archives.find(a => a.id === currentDetailArchiveId);
       if (!archive) return;
-      const ok = confirm('Remove this date from your archives and add it back to the pool?');
-      if (!ok) return;
-      deleteArchive(currentDetailArchiveId);
+      showConfirm(
+        'Remove "' + archive.idea.text + '" from your archives and add it back to the pool?',
+        () => deleteArchive(currentDetailArchiveId)
+      );
     }
 
     function deleteArchive(archiveId) {
@@ -872,11 +908,14 @@
     function removeFromPool(index) {
       const idea = state.pool[index];
       if (!idea) return;
-      const ok = confirm('Permanently remove "' + idea.text + '" from your date list?');
-      if (!ok) return;
-      state.pool.splice(index, 1);
-      saveState();
-      updateUI();
+      showConfirm(
+        'Permanently remove "' + idea.text + '" from your date list?',
+        () => {
+          state.pool.splice(index, 1);
+          saveState();
+          updateUI();
+        }
+      );
     }
 
     // ===== UTILS =====
