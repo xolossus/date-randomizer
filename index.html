@@ -137,6 +137,16 @@
 </head>
 <body class="bg-gray-900 text-white h-screen w-screen overflow-hidden relative">
 
+  <div id="updatePrompt" role="status" aria-live="polite" class="fixed top-3 left-3 right-3 z-40 glass rounded-2xl p-4 hidden">
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <p class="font-bold text-pink-200">Update available</p>
+        <p id="updateMessage" class="text-xs text-gray-300 mt-1">Your saved dates will stay on this phone.</p>
+      </div>
+      <button id="updateButton" onclick="applyAppUpdate()" class="btn-primary rounded-xl px-4 py-3 text-sm font-bold shrink-0">Update now</button>
+    </div>
+  </div>
+
   <!-- Sakura Petals Container -->
   <div id="petals"></div>
 
@@ -210,6 +220,7 @@
     <div class="text-center pb-3">
       <button onclick="showDataModal()" class="text-pink-200 text-sm underline p-2">💾 Backup &amp; restore</button>
       <p id="saveStatus" role="status" class="text-xs text-red-300 px-4"></p>
+      <p class="text-gray-500 text-xs">Version 5</p>
     </div>
   </div>
 
@@ -1060,13 +1071,81 @@
       }
     }
 
+    // A downloaded worker waits until the user chooses to update.
+    let appRegistration = null;
+    let updateRequested = false;
+    let updateReloaded = false;
+
+    function showAvailableUpdate() {
+      if (!appRegistration || !appRegistration.waiting || !navigator.serviceWorker.controller) return;
+      document.getElementById('updatePrompt').classList.remove('hidden');
+    }
+
+    async function applyAppUpdate() {
+      if (updateRequested || !storageReady || !appRegistration || !appRegistration.waiting) return;
+      if (!document.getElementById('photoModal').classList.contains('hidden') || document.getElementById('newIdeaInput').value.trim() || document.getElementById('dataImportArea').value.trim()) {
+        document.getElementById('updateMessage').textContent = 'Finish saving your photos or edits first, then tap Update now.';
+        return;
+      }
+      const button = document.getElementById('updateButton');
+      button.disabled = true;
+      document.getElementById('updateMessage').textContent = 'Saving your dates…';
+      // Block edits until the saved snapshot has been committed and reloaded.
+      document.getElementById('storageErrorText').textContent = 'Saving your dates and updating…';
+      document.getElementById('storageError').classList.remove('hidden');
+      try {
+        await dbSet(JSON.parse(JSON.stringify(state)));
+        if (!appRegistration.waiting) {
+          location.reload();
+          return;
+        }
+        updateRequested = true;
+        appRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+      } catch (error) {
+        button.disabled = false;
+        document.getElementById('storageError').classList.add('hidden');
+        document.getElementById('updateMessage').textContent = 'Could not save your dates. Download a backup before updating.';
+      }
+    }
+
+    function setupAppUpdates() {
+      if (!('serviceWorker' in navigator)) return;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (updateRequested && !updateReloaded) {
+          updateReloaded = true;
+          location.reload();
+        }
+      });
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(registration => {
+        appRegistration = registration;
+        const watchInstallingWorker = () => {
+          const worker = registration.installing;
+          if (!worker) return;
+          worker.addEventListener('statechange', () => {
+            if (worker.state === 'installed') showAvailableUpdate();
+          });
+        };
+        registration.addEventListener('updatefound', watchInstallingWorker);
+        watchInstallingWorker();
+        showAvailableUpdate();
+        const checkForUpdate = () => {
+          if (document.visibilityState === 'visible' && navigator.onLine) {
+            showAvailableUpdate();
+            registration.update().catch(() => {});
+          }
+        };
+        document.addEventListener('visibilitychange', checkForUpdate);
+        window.addEventListener('online', checkForUpdate);
+        setInterval(checkForUpdate, 5 * 60 * 1000);
+        checkForUpdate();
+      }).catch(() => {});
+    }
+
     // ===== START =====
     init();
 
     // ===== SERVICE WORKER (offline / installable app) =====
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js');
-    }
+    setupAppUpdates();
   </script>
 </body>
 </html>

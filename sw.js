@@ -1,5 +1,5 @@
 /* Tokyo Date Ideas — service worker (cache-first for offline) */
-const CACHE = 'tokyo-date-v4';
+const CACHE = 'tokyo-date-v5';
 const PRECACHE = [
   './',
   './index.html',
@@ -13,8 +13,13 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE)
       .then((cache) => cache.addAll(PRECACHE))
-      .then(() => self.skipWaiting())
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    event.waitUntil(self.skipWaiting());
+  }
 });
 
 self.addEventListener('activate', (event) => {
@@ -32,29 +37,22 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
 
-  // Refresh the app screen online while keeping an offline copy.
-  // User archives and lists live in IndexedDB, separate from these caches.
+  // Keep the screen matched to the active worker until an update is accepted.
+  // IndexedDB user data is separate from these cached app files.
   if (req.mode === 'navigate') {
     event.respondWith((async () => {
       const cache = await caches.open(CACHE);
-      try {
-        const res = await fetch(req, { cache: 'no-cache' });
-        if (res.ok) {
-          await cache.put('./index.html', res.clone());
-          return res;
-        }
-        return (await cache.match('./index.html')) || res;
-      } catch (error) {
-        const cached = await cache.match('./index.html');
-        if (cached) return cached;
-        throw error;
-      }
+      const cached = await cache.match('./index.html');
+      if (cached) return cached;
+      const res = await fetch(req);
+      if (res.ok) await cache.put('./index.html', res.clone());
+      return res;
     })());
     return;
   }
 
   event.respondWith(
-    caches.match(req).then((cached) => {
+    caches.open(CACHE).then(cache => cache.match(req)).then((cached) => {
       if (cached) return cached;
       return fetch(req)
         .then((res) => {
