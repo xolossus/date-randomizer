@@ -67,20 +67,31 @@ const settle = () => new Promise(resolve => setImmediate(resolve));
   await settle();
   assert.match(existing.document.getElementById('saveStatus').textContent, /Could not save/);
 
-  const listCompletion = setup(() => JSON.parse(JSON.stringify(saved)));
-  vm.runInContext('init()', listCompletion);
-  await settle();
-  vm.runInContext(`
-    updateUI = originalUpdateUI;
-    renderArchives = () => {};
-    renderList = () => {};
-    openListActionModal(0);
-    listActionComplete();
-  `, listCompletion);
-  assert.equal(listCompletion.document.getElementById('completedCounter').textContent, 18,
-    'Completing from the list must immediately refresh hearts');
-  assert.equal(listCompletion.document.getElementById('poolCount').textContent, 0,
-    'Completing from the list must immediately refresh pool count');
-  assert.equal(listCompletion.getState().archives.length, 2);
+  for (const finish of ['skipPhotos()', 'openPhotoModalFromComplete(); savePhotos()', 'openPhotoModalFromComplete(); closePhotoModal()']) {
+    const listCompletion = setup(() => JSON.parse(JSON.stringify(saved)));
+    vm.runInContext('init()', listCompletion);
+    await settle();
+    vm.runInContext(`
+      updateUI = originalUpdateUI;
+      renderArchives = () => {};
+      let listRenders = 0;
+      renderList = () => { listRenders++; };
+      updateUI();
+      listRenders = 0;
+      openListActionModal(0);
+      listActionComplete();
+    `, listCompletion);
+    assert.equal(listCompletion.document.getElementById('completedCounter').textContent, 18,
+      'Completing from the list must immediately refresh hearts');
+    assert.equal(listCompletion.document.getElementById('poolCount').textContent, 1,
+      'Keep the old pool count while the completion modal is open');
+    assert.equal(vm.runInContext('listRenders', listCompletion), 0,
+      'Keep the list unchanged behind the completion modal');
+    assert.equal(listCompletion.getState().archives.length, 2);
+    vm.runInContext(finish, listCompletion);
+    assert.equal(listCompletion.document.getElementById('poolCount').textContent, 0,
+      'Refresh pool count after skipping, saving, or cancelling photos');
+    assert.ok(vm.runInContext('listRenders', listCompletion) > 0);
+  }
   console.log('Persistence checks passed');
 })();

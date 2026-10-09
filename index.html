@@ -220,7 +220,7 @@
     <div class="text-center pb-3">
       <button onclick="showDataModal()" class="text-pink-200 text-sm underline p-2">💾 Backup &amp; restore</button>
       <p id="saveStatus" role="status" class="text-xs text-red-300 px-4"></p>
-      <p class="text-gray-500 text-xs">Version 5</p>
+      <p class="text-gray-500 text-xs">Version 6</p>
     </div>
   </div>
 
@@ -770,6 +770,7 @@
       document.getElementById('completionModal').classList.remove('flex');
       state.completingArchiveId = null;
       resetCard();
+      updateUI();
       if (state.completionSource === 'list') {
         showList();
       } else {
@@ -797,6 +798,7 @@
         state.completingArchiveId = null;
         resetCard();
       }
+      updateUI();
     }
 
     function handlePhotoSelect(event) {
@@ -1010,7 +1012,7 @@
       state.completingArchiveId = archiveEntry.id;
       state.completionSource = 'list';
       saveState();
-      updateUI();
+      document.getElementById('completedCounter').textContent = state.completedCount;
 
       listActionSkip();
 

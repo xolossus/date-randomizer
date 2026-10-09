@@ -59,7 +59,7 @@ Open the app link in your browser and start drawing dates. Installation is optio
 3. Add photos if you'd like, or skip that step.
 4. Open **Archives** to revisit your completed dates and memories.
 
-Prefer choosing a date yourself? Open **List**, tap an idea, and select **Did It!**. Your pool count and hearts update immediately.
+Prefer choosing a date yourself? Open **List**, tap an idea, and select **Did It!**. Your hearts update immediately. The list and pool count refresh when you skip photos or close the photo step.
 
 ---
 
