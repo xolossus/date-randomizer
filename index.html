@@ -297,6 +297,22 @@
     </div>
   </div>
 
+
+  <!-- LIST ACTION MODAL -->
+  <div id="listActionModal" class="fixed inset-0 z-30 bg-black/80 hidden items-center justify-center p-4">
+    <div class="glass rounded-3xl p-6 w-full max-w-sm modal-enter text-center">
+      <div id="listActionEmoji" class="text-6xl mb-3">❓</div>
+      <h3 id="listActionText" class="text-lg font-bold mb-4 px-2"></h3>
+      <div class="flex gap-2">
+        <button onclick="listActionSkip()" class="flex-1 py-3 rounded-xl glass text-gray-300 font-bold active:scale-95 transition-transform text-sm">
+          <div class="text-xl mb-1">❌</div>Skip
+        </button>
+        <button onclick="listActionComplete()" class="flex-1 py-3 rounded-xl btn-primary font-bold active:scale-95 transition-transform text-sm">
+          <div class="text-xl mb-1 heart-beat">💕</div>Did It!
+        </button>
+      </div>
+    </div>
+  </div>
   <!-- DATA EXPORT/IMPORT (for sandboxed environments) -->
   <div id="dataModal" class="fixed inset-0 z-30 bg-black/80 hidden items-center justify-center p-4">
     <div class="glass rounded-3xl p-6 w-full max-w-sm modal-enter">
@@ -661,6 +677,7 @@
       state.archives.unshift(archiveEntry);
       state.completedCount++;
       state.completingArchiveId = archiveEntry.id;
+      state.completionSource = 'main';
       state.currentDraw = null;
       saveState();
       
@@ -694,7 +711,12 @@
       document.getElementById('completionModal').classList.remove('flex');
       state.completingArchiveId = null;
       resetCard();
-      showMain();
+      if (state.completionSource === 'list') {
+        showList();
+      } else {
+        showMain();
+      }
+      state.completionSource = null;
     }
 
     function openPhotoModal(archiveId) {
@@ -759,7 +781,12 @@
         resetCard();
       }
       renderArchives();
-      showMain();
+      if (state.completionSource === 'list') {
+        showList();
+      } else {
+        showMain();
+      }
+      state.completionSource = null;
     }
 
     // ===== ARCHIVES =====
@@ -875,15 +902,61 @@
       }
       
       container.innerHTML = state.pool.map((idea, idx) => `
-        <div class="glass rounded-xl p-3 flex items-center gap-3 slide-in">
-          <div class="text-2xl">${idea.emoji || '💡'}</div>
-          <div class="flex-1 min-w-0">
-            <p class="font-medium text-sm truncate">${idea.text}</p>
-            <p class="text-xs text-gray-400">${idea.category || 'Custom'}</p>
+        <div class="glass rounded-xl p-2 flex items-center gap-2 slide-in">
+          <div class="flex-1 flex items-center gap-3 cursor-pointer p-1 active:opacity-70 transition-opacity min-w-0" onclick="openListActionModal(${idx})">
+            <div class="text-2xl">${idea.emoji || '💡'}</div>
+            <div class="flex-1 min-w-0">
+              <p class="font-medium text-sm truncate">${idea.text}</p>
+              <p class="text-xs text-gray-400">${idea.category || 'Custom'}</p>
+            </div>
           </div>
-          <button onclick="removeFromPool(${idx})" class="text-red-400 p-2 text-lg">🗑️</button>
+          <button onclick="removeFromPool(${idx})" class="text-red-400 p-2 text-lg active:scale-95 transition-transform" aria-label="Remove ${idea.text}">🗑️</button>
         </div>
       `).join('');
+    }
+
+
+    let pendingListActionIdx = -1;
+
+    function openListActionModal(idx) {
+      pendingListActionIdx = idx;
+      const idea = state.pool[idx];
+      document.getElementById('listActionEmoji').textContent = idea.emoji || '💡';
+      document.getElementById('listActionText').textContent = idea.text;
+      document.getElementById('listActionModal').classList.remove('hidden');
+      document.getElementById('listActionModal').classList.add('flex');
+    }
+
+    function listActionSkip() {
+      pendingListActionIdx = -1;
+      document.getElementById('listActionModal').classList.add('hidden');
+      document.getElementById('listActionModal').classList.remove('flex');
+    }
+
+    function listActionComplete() {
+      if (pendingListActionIdx < 0 || pendingListActionIdx >= state.pool.length) return;
+
+      const idea = state.pool[pendingListActionIdx];
+      state.pool.splice(pendingListActionIdx, 1);
+
+      const archiveEntry = {
+        id: 'archive_' + Date.now(),
+        idea: idea,
+        completedAt: new Date().toISOString(),
+        photos: []
+      };
+
+      state.archives.unshift(archiveEntry);
+      state.completedCount++;
+      state.completingArchiveId = archiveEntry.id;
+      state.completionSource = 'list';
+      saveState();
+
+      listActionSkip();
+
+      // Trigger completion modal logic
+      document.getElementById('completionModal').classList.remove('hidden');
+      document.getElementById('completionModal').classList.add('flex');
     }
 
     function addIdea() {
