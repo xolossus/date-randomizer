@@ -22,6 +22,7 @@ function setup(read, legacy = null) {
     dbGet = async () => read();
     dbSet = async value => { if (failWrite) throw new Error('Storage full'); writes.push(value); };
     finishInit = () => {};
+    const originalUpdateUI = updateUI;
     updateUI = () => {};
     globalThis.getState = () => state;
   `, context);
@@ -65,5 +66,21 @@ const settle = () => new Promise(resolve => setImmediate(resolve));
   vm.runInContext('saveState()', existing);
   await settle();
   assert.match(existing.document.getElementById('saveStatus').textContent, /Could not save/);
+
+  const listCompletion = setup(() => JSON.parse(JSON.stringify(saved)));
+  vm.runInContext('init()', listCompletion);
+  await settle();
+  vm.runInContext(`
+    updateUI = originalUpdateUI;
+    renderArchives = () => {};
+    renderList = () => {};
+    openListActionModal(0);
+    listActionComplete();
+  `, listCompletion);
+  assert.equal(listCompletion.document.getElementById('completedCounter').textContent, 18,
+    'Completing from the list must immediately refresh hearts');
+  assert.equal(listCompletion.document.getElementById('poolCount').textContent, 0,
+    'Completing from the list must immediately refresh pool count');
+  assert.equal(listCompletion.getState().archives.length, 2);
   console.log('Persistence checks passed');
 })();
