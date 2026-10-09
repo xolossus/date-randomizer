@@ -1,5 +1,5 @@
 /* Tokyo Date Ideas — service worker (cache-first for offline) */
-const CACHE = 'tokyo-date-v2';
+const CACHE = 'tokyo-date-v3';
 const PRECACHE = [
   './',
   './index.html',

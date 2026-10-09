@@ -207,8 +207,10 @@
 
     </div>
 
-    <!-- Bottom padding for safe area -->
-    <div class="h-6"></div>
+    <div class="text-center pb-3">
+      <button onclick="showDataModal()" class="text-pink-200 text-sm underline p-2">💾 Backup &amp; restore</button>
+      <p id="saveStatus" role="status" class="text-xs text-red-300 px-4"></p>
+    </div>
   </div>
 
   <!-- ARCHIVES VIEW -->
@@ -313,17 +315,29 @@
       </div>
     </div>
   </div>
-  <!-- DATA EXPORT/IMPORT (for sandboxed environments) -->
+  <div id="storageError" class="fixed inset-0 z-50 bg-gray-900 flex items-center justify-center p-6">
+    <div class="glass rounded-3xl p-6 max-w-sm text-center">
+      <h3 class="text-xl font-bold mb-3">Your saved dates</h3>
+      <p id="storageErrorText" class="text-gray-300 mb-4">Loading your saved dates…</p>
+      <button id="storageRetry" onclick="location.reload()" class="btn-primary rounded-xl p-3 hidden">Try again</button>
+    </div>
+  </div>
+
+  <!-- DATA BACKUP / RESTORE -->
   <div id="dataModal" class="fixed inset-0 z-30 bg-black/80 hidden items-center justify-center p-4">
     <div class="glass rounded-3xl p-6 w-full max-w-sm modal-enter">
       <h3 class="text-xl font-black pixel-font text-center mb-2">💾 Your Data</h3>
-      <p class="text-gray-300 text-xs text-center mb-4">Copy this text to keep your dates. Paste it back to restore!</p>
+      <p class="text-gray-300 text-xs text-center mb-4">Download a backup of your list, archives, photos, and hearts. Keep it outside the app.</p>
       <textarea id="dataExportArea" readonly class="w-full h-32 bg-black/50 rounded-xl p-3 text-xs text-green-400 font-mono mb-3 outline-none resize-none"></textarea>
       <textarea id="dataImportArea" placeholder="Paste saved data here to restore..." class="w-full h-20 bg-white/10 rounded-xl p-3 text-xs text-white placeholder-gray-500 mb-3 outline-none resize-none"></textarea>
       <div class="flex gap-2">
         <button onclick="copyData()" class="flex-1 py-3 rounded-xl glass text-green-300 font-bold text-sm">📋 Copy</button>
         <button onclick="importData()" class="flex-1 py-3 rounded-xl btn-primary font-bold text-sm">📥 Restore</button>
       </div>
+      <button onclick="downloadBackup()" class="w-full mt-2 py-3 rounded-xl glass font-bold text-sm">Download backup</button>
+      <label class="block mt-2 text-sm text-center">Restore a backup file
+        <input type="file" accept=".json,application/json" onchange="restoreBackupFile(this)" class="block w-full mt-2 text-xs">
+      </label>
       <button onclick="closeDataModal()" class="w-full mt-2 py-2 rounded-xl glass text-gray-400 text-sm">Close</button>
     </div>
   </div>
@@ -412,6 +426,7 @@
     const DB_STORE = 'kv';
     const DB_KEY = 'main';
     let dbPromise = null;
+    let storageReady = false;
 
     function openDB() {
       if (dbPromise) return dbPromise;
@@ -420,7 +435,8 @@
         const req = indexedDB.open(DB_NAME, DB_VERSION);
         req.onupgradeneeded = () => req.result.createObjectStore(DB_STORE);
         req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
+        req.onerror = () => { dbPromise = null; reject(req.error); };
+        req.onblocked = () => { dbPromise = null; reject(new Error('Storage is blocked. Close other app tabs and try again.')); };
       });
       return dbPromise;
     }
@@ -430,10 +446,10 @@
         const db = await openDB();
         return await new Promise((resolve, reject) => {
           const req = db.transaction(DB_STORE, 'readonly').objectStore(DB_STORE).get(DB_KEY);
-          req.onsuccess = () => resolve(req.result || null);
+          req.onsuccess = () => resolve(req.result === undefined ? null : req.result);
           req.onerror = () => reject(req.error);
         });
-      } catch(e) { return null; }
+      } catch(e) { throw e; }
     }
 
     async function dbSet(value) {
@@ -444,32 +460,42 @@
           tx.objectStore(DB_STORE).put(value, DB_KEY);
           tx.oncomplete = () => resolve();
           tx.onerror = () => reject(tx.error);
+          tx.onabort = () => reject(tx.error || new Error('Save was interrupted'));
         });
-      } catch(e) {}
+      } catch(e) { throw e; }
     }
 
     // ===== INIT =====
     function init() {
       dbGet().then(saved => {
-        if (saved && saved.pool && saved.archives) {
+        if (saved !== null) {
+          if (!validState(saved)) throw new Error('Saved data could not be read safely.');
           state = saved;
         } else {
           loadLegacy();
         }
+        storageReady = true;
         finishInit();
-      }).catch(() => {
-        loadLegacy();
-        finishInit();
+        document.getElementById('storageError').classList.add('hidden');
+        if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+      }).catch((error) => {
+        document.getElementById('storageErrorText').textContent = 'We could not load your saved dates. Nothing has been reset or overwritten. Close other app tabs and try again. ' + error.message;
+        document.getElementById('storageRetry').classList.remove('hidden');
       });
     }
 
+    function validState(value) {
+      return value && Array.isArray(value.pool) && Array.isArray(value.archives) &&
+        Number.isInteger(value.completedCount) && value.completedCount >= 0;
+    }
+
     function loadLegacy() {
-      const saved = storage.get('tokyoDateState');
+      const saved = localStorage.getItem('tokyoDateState');
       if (saved) {
-        try {
-          state = JSON.parse(saved);
-          return;
-        } catch(e) {}
+        const parsed = JSON.parse(saved);
+        if (!validState(parsed)) throw new Error('Legacy saved data is invalid.');
+        state = parsed;
+        return;
       }
       resetData();
     }
@@ -488,11 +514,33 @@
       saveState();
     }
 
-    // Debounced write to IndexedDB
-    let saveTimer = null;
+    // Save each change immediately; never write defaults after a failed load.
     function saveState() {
-      if (saveTimer) clearTimeout(saveTimer);
-      saveTimer = setTimeout(() => dbSet(state), 250);
+      if (!storageReady) return;
+      const snapshot = JSON.parse(JSON.stringify(state));
+      dbSet(snapshot).then(() => {
+        document.getElementById('saveStatus').textContent = '';
+      }).catch(() => {
+        document.getElementById('saveStatus').textContent = 'Could not save. Download a backup before closing the app.';
+      });
+    }
+
+    function downloadBackup() {
+      const url = URL.createObjectURL(new Blob([JSON.stringify(state)], { type: 'application/json' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'tokyo-dates-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+
+    async function restoreBackupFile(input) {
+      if (!input.files[0]) return;
+      document.getElementById('dataImportArea').value = await input.files[0].text();
+      importData();
+      input.value = '';
     }
 
     // ===== DATA PERSISTENCE FOR SANDBOXED ENV =====
@@ -520,21 +568,21 @@
       } catch(e) {}
     }
 
-    function importData() {
+    async function importData() {
       const raw = document.getElementById('dataImportArea').value.trim();
       if (!raw) return;
       try {
         const parsed = JSON.parse(raw);
-        if (parsed.pool && parsed.archives && typeof parsed.completedCount === 'number') {
+        if (validState(parsed)) {
+          await dbSet(parsed);
           state = parsed;
-          saveState();
           updateUI();
           closeDataModal();
         } else {
           alert('Invalid data format');
         }
       } catch(e) {
-        alert('Could not parse data');
+        alert('Could not restore the backup. Check the file and available storage. Your current data has not been replaced.');
       }
     }
 
