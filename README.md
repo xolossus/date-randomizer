@@ -110,6 +110,12 @@ Open **Backup & restore** and select your JSON file under **Restore a backup fil
 
 ---
 
+## 📜 License
+
+[MIT License](LICENSE)
+
+---
+
 ## 👤 Author
 
 [xolossus](https://github.com/xolossus)
